@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+release/
+
+# local tool binaries (bundled at build time, not committed)
+tools/
+
+# private / local only
+CLAUDE.md
+Canon R7 EXR Converter Report.html
+docs/Teams banner*.png
