@@ -262,7 +262,9 @@ class App(ttk.Frame):
         if manual:
             self.update_button.configure(state="normal", text="Check for updates")
         if error is not None:
-            if manual:
+            if manual and getattr(error, "code", None) == 404:
+                messagebox.showinfo("Up to date", "No update has been published yet.")
+            elif manual:
                 messagebox.showerror("Update check failed",
                                      f"Couldn't reach GitHub. Check the internet connection.\n\n{error}")
             return
