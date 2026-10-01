@@ -21,7 +21,6 @@ from .media import Clip, Tools, pack_timecode, probe, _NO_WINDOW
 RESOLUTIONS: dict[str, int | None] = {
     "Full": None,
     "1920 wide": 1920,
-    "1280 wide": 1280,
 }
 
 BIT_DEPTHS: dict[str, str] = {

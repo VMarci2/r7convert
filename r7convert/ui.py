@@ -253,22 +253,41 @@ class App(ttk.Frame):
         options.columnconfigure(1, weight=1)
         self.dailies_codec_var = self._combo(options, 0, "Format", list(dailies.CODECS))
         self.dailies_size_var = self._combo(options, 1, "Size", list(dailies.SIZES))
-        ttk.Label(options, text="Project name").grid(row=2, column=0, sticky="w", pady=2)
+        ttk.Label(options, foreground="#6b7280",
+                  text="Canon Log stays flat: no colour correction is applied.").grid(
+            row=2, column=0, columnspan=2, sticky="w", pady=(2, 0))
+
+        burn = ttk.LabelFrame(tab, text="Burn in", padding=PAD)
+        burn.grid(row=3, column=0, sticky="ew", pady=(PAD, 0))
+        burn.columnconfigure(1, weight=1)
+        self.dailies_name_on = tk.BooleanVar(value=True)
+        self.dailies_frame_on = tk.BooleanVar(value=True)
+        self.dailies_project_on = tk.BooleanVar(value=True)
         self.dailies_project_var = tk.StringVar()
-        ttk.Entry(options, textvariable=self.dailies_project_var, width=31).grid(
-            row=2, column=1, sticky="w", padx=(PAD, 0), pady=2
-        )
-        ttk.Label(options, foreground="#6b7280", wraplength=420, justify="left",
-                  text="Optional, shown bottom left. The clip name is burnt in bottom centre and "
-                       "the frame number bottom right. Canon Log stays flat: no colour correction."
-                  ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(2, 0))
+        hint = {"foreground": "#6b7280"}
+        ttk.Checkbutton(burn, text="Clip name", variable=self.dailies_name_on).grid(
+            row=0, column=0, sticky="w", pady=1)
+        ttk.Label(burn, text="bottom centre", **hint).grid(row=0, column=1, sticky="w", padx=(PAD, 0))
+        ttk.Checkbutton(burn, text="Frame number", variable=self.dailies_frame_on).grid(
+            row=1, column=0, sticky="w", pady=1)
+        ttk.Label(burn, text="bottom right, e.g. 006 / 135", **hint).grid(
+            row=1, column=1, sticky="w", padx=(PAD, 0))
+        ttk.Checkbutton(burn, text="Project name", variable=self.dailies_project_on).grid(
+            row=2, column=0, sticky="w", pady=1)
+        project_row = ttk.Frame(burn)
+        project_row.grid(row=2, column=1, sticky="w", padx=(PAD, 0))
+        self.dailies_project_entry = ttk.Entry(project_row, textvariable=self.dailies_project_var, width=28)
+        self.dailies_project_entry.pack(side="left")
+        ttk.Label(project_row, text="  bottom left, hidden if empty", **hint).pack(side="left")
+        self.dailies_project_on.trace_add("write", lambda *_: self.dailies_project_entry.configure(
+            state="normal" if self.dailies_project_on.get() else "disabled"))
 
         self.dailies_summary_var = tk.StringVar(value="No clips added.")
-        ttk.Label(tab, textvariable=self.dailies_summary_var).grid(row=3, column=0, sticky="w", pady=(PAD, 0))
+        ttk.Label(tab, textvariable=self.dailies_summary_var).grid(row=4, column=0, sticky="w", pady=(PAD, 0))
         self.dailies_progress = ttk.Progressbar(tab, mode="determinate", maximum=1000)
-        self.dailies_progress.grid(row=4, column=0, sticky="ew", pady=(PAD, 0))
+        self.dailies_progress.grid(row=5, column=0, sticky="ew", pady=(PAD, 0))
         actions = ttk.Frame(tab)
-        actions.grid(row=5, column=0, sticky="ew", pady=(PAD, 0))
+        actions.grid(row=6, column=0, sticky="ew", pady=(PAD, 0))
         actions.columnconfigure(0, weight=1)
         self.dailies_status_var = tk.StringVar(value="Ready")
         ttk.Label(actions, textvariable=self.dailies_status_var).grid(row=0, column=0, sticky="w")
@@ -337,6 +356,9 @@ class App(ttk.Frame):
             codec=self.dailies_codec_var.get(),
             size=self.dailies_size_var.get(),
             project=self.dailies_project_var.get(),
+            burn_project=self.dailies_project_on.get(),
+            burn_name=self.dailies_name_on.get(),
+            burn_frame=self.dailies_frame_on.get(),
         )
 
     def refresh_dailies_summary(self) -> None:
@@ -785,8 +807,8 @@ def main() -> int:
             root.iconbitmap(default=str(icon))
         except tk.TclError:
             pass
-    root.geometry("620x520")
-    root.minsize(520, 440)
+    root.geometry("620x620")
+    root.minsize(520, 600)
     try:
         tools = Tools.discover()
     except ToolsMissing as error:

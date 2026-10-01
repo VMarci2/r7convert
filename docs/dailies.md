@@ -7,11 +7,12 @@ burnt into the picture. Use them to share a day's footage or review takes.
 
 | Where | What |
 |---|---|
-| Bottom left | Your project name (only if you fill it in) |
+| Bottom left | Your project name |
 | Bottom centre | The clip's file name |
 | Bottom right | Frame number and the clip's total frames, e.g. `006 / 135` |
 
-The text is Arial, on a 50% black box. The frame counter restarts at 1 for each clip.
+Each one can be switched on or off. The text is Arial, on a 50% black box, and
+the frame counter restarts at 1 for each clip.
 
 ## Making dailies
 
@@ -26,10 +27,12 @@ The text is Arial, on a 50% black box. The frame counter restarts at 1 for each 
     | Option | Choices |
     |---|---|
     | Format | **H.264** (default: small, plays anywhere), ProRes 422 HQ, ProRes 422, ProRes 422 LT |
-    | Size | **1920 x 1080** (default), 1280 x 720, Same as first clip |
-    | Project name | Optional text for the bottom left |
+    | Size | **1920 x 1080** (default), Same as first clip |
 
-5. Click **Make dailies**. When it's done, the app offers to play the file.
+5. Under **Burn in**, tick what should appear in the picture. All three are on
+   by default. Type a **Project name** to show it bottom left; if the box is
+   empty, or its tick is off, nothing is shown there.
+6. Click **Make dailies**. When it's done, the app offers to play the file.
 
 The line above the progress bar shows the length and estimated file size.
 

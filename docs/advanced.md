@@ -24,7 +24,7 @@ your pipeline asks for something else, and read the files in Nuke to match
 
 ## Format
 
-**Size** applies to every format: Full, 1920 wide or 1280 wide. The aspect
+**Size** applies to every format: Full or 1920 wide. The aspect
 ratio is kept, and downscaling happens in linear light so highlights keep their
 energy.
 

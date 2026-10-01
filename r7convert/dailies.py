@@ -39,7 +39,6 @@ CODECS: dict[str, tuple[list[str], str, list[str]]] = {
 # label -> (width, height); None uses the first clip's size.
 SIZES: dict[str, tuple[int, int] | None] = {
     "1920 x 1080": (1920, 1080),
-    "1280 x 720": (1280, 720),
     "Same as first clip": None,
 }
 
@@ -90,6 +89,10 @@ class DailiesSettings:
     codec: str = next(iter(CODECS))
     size: str = next(iter(SIZES))
     project: str = ""
+    # what to burn in; the project name also needs text to show
+    burn_project: bool = True
+    burn_name: bool = True
+    burn_frame: bool = True
 
 
 def output_format(clips: list[Clip], settings: DailiesSettings) -> tuple[int, int, Fraction]:
@@ -155,7 +158,7 @@ class DailiesMaker:
             shutil.copy2(_FONT, work / "arial.ttf")
         else:
             font = "font=Arial"
-        project = self.settings.project.strip()
+        project = self.settings.project.strip() if self.settings.burn_project else ""
         if project:
             (work / "project.txt").write_text(project, encoding="utf-8")
 
@@ -203,9 +206,11 @@ class DailiesMaker:
             f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black",
             "setsar=1",
             f"format={pix_fmt}",
-            f"drawtext={text}:textfile=name{index}.txt:expansion=none:x=(w-tw)/2",
-            f"drawtext={text}:textfile=frame{index}.txt:expansion=normal:x=w-tw-{margin}",
         ]
+        if self.settings.burn_name:
+            steps.append(f"drawtext={text}:textfile=name{index}.txt:expansion=none:x=(w-tw)/2")
+        if self.settings.burn_frame:
+            steps.append(f"drawtext={text}:textfile=frame{index}.txt:expansion=normal:x=w-tw-{margin}")
         if project:
             steps.append(f"drawtext={text}:textfile=project.txt:expansion=none:x={margin}")
         steps.append("setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709")

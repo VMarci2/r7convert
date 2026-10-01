@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.0
+
+- Dailies: choose what is burnt in. Clip name, frame number and project name
+  each have their own tick box on the new Burn in section.
+- 720p removed: the Convert size options are Full and 1920 wide, and the
+  Dailies sizes are 1920 x 1080 and Same as first clip.
+- The window opens taller, so every Dailies control fits.
+
 ## 2.3.0
 
 - Optional ProRes .mov output, alongside the EXRs or instead of them (Advanced
