@@ -27,6 +27,7 @@ RELEASES_PAGE = f"https://github.com/{REPO}/releases/latest"
 # The documentation site (MkDocs, built from docs/ by .github/workflows/docs.yml).
 DOCS_URL = "https://vmarci2.github.io/r7convert/"
 NUKE_URL = DOCS_URL + "nuke/"
+DAILIES_URL = DOCS_URL + "dailies/"
 HEADLESS_URL = DOCS_URL + "headless/"
 TROUBLESHOOTING_URL = DOCS_URL + "troubleshooting/"
 # R7_UPDATE_URL points the check at another manifest, for testing a release.

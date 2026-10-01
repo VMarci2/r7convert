@@ -1,5 +1,18 @@
 # Technical reference
 
+## How the conversion works
+
+For every frame, the converter:
+
+| Step | What happens |
+|---|---|
+| 1. Decode | Reads the camera's 10-bit 4:2:2 HEVC video with ffmpeg. |
+| 2. Linearise | Removes the Canon Log 3 curve, giving linear light (18% grey = 0.18). |
+| 3. Colour | Converts from the camera's colour space (Cinema Gamut, read from the clip's metadata) to ACEScg. |
+| 4. Write | Saves a 16-bit half-float EXR with ZIP compression, frame rate, timecode, camera and lens information. |
+
+## Specifications
+
 | Item | Value |
 |---|---|
 | Input | HEVC (H.265) Rext, 10-bit 4:2:2, Canon Log 3, as recorded by the EOS R7 |
@@ -9,6 +22,7 @@
 | Resizing | Lanczos, applied in linear light |
 | EXR | Written with OpenImageIO; half or float, RGB, with chromaticities, frame rate, SMPTE timecode, camera, lens and a comment |
 | ProRes | `prores_ks`, 10-bit, linear values clipped to [0, 1], Rec.709 matrix, legal range, with timecode and source audio |
+| Dailies | Each clip encoded separately, then joined without re-encoding. Picture passed through unchanged (Canon Log read as legal range, code values kept) and tagged Rec.709. H.264 uses x264, OpenH264 or Media Foundation, whichever the ffmpeg build has; the bundled build uses OpenH264 |
 | Libraries | FFmpeg (decode and ProRes, LGPL), ExifTool (Canon metadata), numpy, OpenImageIO, tkinter. Built with PyInstaller |
 
 ## Why legal range?

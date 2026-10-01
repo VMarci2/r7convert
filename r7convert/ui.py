@@ -9,12 +9,13 @@ import sys
 import threading
 import traceback
 import webbrowser
+from datetime import date
 from pathlib import Path
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from . import colour, update
+from . import colour, dailies, update
 from .convert import (
     BIT_DEPTHS,
     COMPRESSIONS,
@@ -57,11 +58,18 @@ class App(ttk.Frame):
         self.notebook.grid(row=0, column=0, sticky="nsew")
         self.convert_tab = ttk.Frame(self.notebook, padding=PAD)
         self.advanced_tab = ttk.Frame(self.notebook, padding=PAD)
+        self.dailies_tab = ttk.Frame(self.notebook, padding=PAD)
         self.notebook.add(self.convert_tab, text="Convert")
         self.notebook.add(self.advanced_tab, text="Advanced")
+        self.notebook.add(self.dailies_tab, text="Dailies")
+
+        self.dailies_paths: list[Path] = []
+        self.dailies_cancel = threading.Event()
+        self.dailies_running = False
 
         self._build_convert()
         self._build_advanced()
+        self._build_dailies()
         self._build_menu()
         self._poll()
 
@@ -208,6 +216,197 @@ class App(ttk.Frame):
             for widget in rows:
                 widget.grid() if on else widget.grid_remove()
 
+    def _build_dailies(self) -> None:
+        tab = self.dailies_tab
+        tab.columnconfigure(0, weight=1)
+
+        clips = ttk.LabelFrame(tab, text="Clips, in playing order", padding=PAD)
+        clips.grid(row=0, column=0, sticky="nsew")
+        clips.columnconfigure(0, weight=1)
+        clips.rowconfigure(0, weight=1)
+        tab.rowconfigure(0, weight=1)
+        self.dailies_list = tk.Listbox(clips, height=6, selectmode="extended", activestyle="none")
+        self.dailies_list.grid(row=0, column=0, sticky="nsew")
+        bar = ttk.Scrollbar(clips, orient="vertical", command=self.dailies_list.yview)
+        bar.grid(row=0, column=1, sticky="ns")
+        self.dailies_list.configure(yscrollcommand=bar.set)
+        buttons = ttk.Frame(clips)
+        buttons.grid(row=0, column=2, sticky="n", padx=(PAD, 0))
+        for text, command in (("Add clips…", lambda: self._dailies_add(self._pick_files())),
+                              ("Add folder…", lambda: self._dailies_add(self._pick_folder())),
+                              ("Move up", lambda: self._dailies_move(-1)),
+                              ("Move down", lambda: self._dailies_move(1)),
+                              ("Remove", self._dailies_remove), ("Clear", self._dailies_clear)):
+            ttk.Button(buttons, text=text, command=command, width=12).pack(fill="x", pady=(0, 2))
+
+        where = ttk.LabelFrame(tab, text="Save as", padding=PAD)
+        where.grid(row=1, column=0, sticky="ew", pady=(PAD, 0))
+        where.columnconfigure(0, weight=1)
+        self.dailies_output_var = tk.StringVar()
+        ttk.Entry(where, textvariable=self.dailies_output_var).grid(row=0, column=0, sticky="ew")
+        ttk.Button(where, text="Choose…", command=self._dailies_pick_output, width=10).grid(
+            row=0, column=1, padx=(PAD, 0)
+        )
+
+        options = ttk.LabelFrame(tab, text="Options", padding=PAD)
+        options.grid(row=2, column=0, sticky="ew", pady=(PAD, 0))
+        options.columnconfigure(1, weight=1)
+        self.dailies_codec_var = self._combo(options, 0, "Format", list(dailies.CODECS))
+        self.dailies_size_var = self._combo(options, 1, "Size", list(dailies.SIZES))
+        ttk.Label(options, text="Project name").grid(row=2, column=0, sticky="w", pady=2)
+        self.dailies_project_var = tk.StringVar()
+        ttk.Entry(options, textvariable=self.dailies_project_var, width=31).grid(
+            row=2, column=1, sticky="w", padx=(PAD, 0), pady=2
+        )
+        ttk.Label(options, foreground="#6b7280", wraplength=420, justify="left",
+                  text="Optional, shown bottom left. The clip name is burnt in bottom centre and "
+                       "the frame number bottom right. Canon Log stays flat: no colour correction."
+                  ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(2, 0))
+
+        self.dailies_summary_var = tk.StringVar(value="No clips added.")
+        ttk.Label(tab, textvariable=self.dailies_summary_var).grid(row=3, column=0, sticky="w", pady=(PAD, 0))
+        self.dailies_progress = ttk.Progressbar(tab, mode="determinate", maximum=1000)
+        self.dailies_progress.grid(row=4, column=0, sticky="ew", pady=(PAD, 0))
+        actions = ttk.Frame(tab)
+        actions.grid(row=5, column=0, sticky="ew", pady=(PAD, 0))
+        actions.columnconfigure(0, weight=1)
+        self.dailies_status_var = tk.StringVar(value="Ready")
+        ttk.Label(actions, textvariable=self.dailies_status_var).grid(row=0, column=0, sticky="w")
+        self.dailies_button = ttk.Button(actions, text="Make dailies", command=self._dailies_start, width=14)
+        self.dailies_button.grid(row=0, column=1)
+        self.dailies_cancel_button = ttk.Button(actions, text="Cancel", command=self.dailies_cancel.set,
+                                                width=10, state="disabled")
+        self.dailies_cancel_button.grid(row=0, column=2, padx=(PAD, 0))
+
+        for var in (self.dailies_codec_var, self.dailies_size_var):
+            var.trace_add("write", lambda *_: self.refresh_dailies_summary())
+
+    def _dailies_add(self, paths: list[Path]) -> None:
+        added = [p for p in paths if p not in self.dailies_paths]
+        for path in added:
+            self.dailies_paths.append(path)
+            self.dailies_list.insert("end", path.name)
+        if not added:
+            return
+        if not self.dailies_output_var.get():
+            self.dailies_output_var.set(str(self.dailies_paths[0].parent / f"Dailies {date.today()}.mov"))
+        self._probe(added)
+        self.refresh_dailies_summary()
+
+    def _dailies_move(self, step: int) -> None:
+        selected = list(self.dailies_list.curselection())
+        if not selected:
+            return
+        order = selected if step < 0 else list(reversed(selected))
+        for index in order:
+            target = index + step
+            if not 0 <= target < len(self.dailies_paths) or target in selected:
+                continue
+            paths = self.dailies_paths
+            paths[index], paths[target] = paths[target], paths[index]
+            selected[selected.index(index)] = target
+        self.dailies_list.delete(0, "end")
+        for path in self.dailies_paths:
+            self.dailies_list.insert("end", path.name)
+        for index in selected:
+            self.dailies_list.selection_set(index)
+
+    def _dailies_remove(self) -> None:
+        for index in sorted(self.dailies_list.curselection(), reverse=True):
+            self.dailies_list.delete(index)
+            del self.dailies_paths[index]
+        self.refresh_dailies_summary()
+
+    def _dailies_clear(self) -> None:
+        self.dailies_list.delete(0, "end")
+        self.dailies_paths.clear()
+        self.refresh_dailies_summary()
+
+    def _dailies_pick_output(self) -> None:
+        current = Path(self.dailies_output_var.get() or "Dailies.mov")
+        picked = filedialog.asksaveasfilename(
+            title="Save dailies as", defaultextension=".mov", filetypes=[("QuickTime movie", "*.mov")],
+            initialdir=str(current.parent) if current.parent.exists() else None, initialfile=current.name,
+        )
+        if picked:
+            self.dailies_output_var.set(picked)
+
+    def _dailies_settings(self) -> dailies.DailiesSettings:
+        return dailies.DailiesSettings(
+            output=Path(self.dailies_output_var.get().strip() or "Dailies.mov"),
+            codec=self.dailies_codec_var.get(),
+            size=self.dailies_size_var.get(),
+            project=self.dailies_project_var.get(),
+        )
+
+    def refresh_dailies_summary(self) -> None:
+        if not self.dailies_paths:
+            self.dailies_summary_var.set("No clips added.")
+            return
+        clips = [self.probed[p] for p in self.dailies_paths if p in self.probed]
+        if len(clips) < len(self.dailies_paths):
+            self.dailies_summary_var.set(f"{len(self.dailies_paths)} clip(s), reading…")
+            return
+        settings = self._dailies_settings()
+        width, height, fps = dailies.output_format(clips, settings)
+        seconds = sum(dailies.frames_at(c, fps) for c in clips) / float(fps)
+        size = human_bytes(dailies.estimate_bytes(clips, settings))
+        self.dailies_summary_var.set(
+            f"{len(clips)} clip(s)  ·  {width}x{height}  ·  {int(seconds // 60)}:{int(seconds % 60):02d}  ·  ~{size}"
+        )
+
+    def _dailies_start(self) -> None:
+        if self._converting():
+            messagebox.showinfo("Busy", "Wait for the conversion to finish first.")
+            return
+        if not self.dailies_paths:
+            messagebox.showwarning("No clips", "Add at least one clip.")
+            return
+        if not self.dailies_output_var.get().strip():
+            messagebox.showwarning("No file", "Choose where to save the dailies.")
+            return
+        settings = self._dailies_settings()
+        output = settings.output.with_suffix(".mov")
+        if output.exists() and not messagebox.askyesno("Replace file?", f"{output.name} already exists. Replace it?"):
+            return
+        self.dailies_running = True
+        self.dailies_cancel.clear()
+        self.dailies_button.configure(state="disabled")
+        self.dailies_cancel_button.configure(state="normal")
+        self.dailies_progress.configure(value=0)
+        self.dailies_status_var.set("Starting…")
+        threading.Thread(target=self._dailies_work, args=(list(self.dailies_paths), settings),
+                         daemon=True).start()
+
+    def _dailies_work(self, paths: list[Path], settings: dailies.DailiesSettings) -> None:
+        try:
+            missing = [p for p in paths if p not in self.probed]
+            for path, clip in zip(missing, probe_clips(missing, self.tools)):
+                self.probed[path] = clip
+            maker = dailies.DailiesMaker(
+                self.tools, settings, lambda m: self.messages.put(("log", m)),
+                lambda f: self.messages.put(("dailies_progress", f)), self.dailies_cancel.is_set,
+            )
+            self.messages.put(("dailies_done", maker.run([self.probed[p] for p in paths])))
+        except dailies.Cancelled:
+            self.messages.put(("dailies_cancelled", None))
+        except Exception as error:
+            self.messages.put(("log", traceback.format_exc()))
+            self.messages.put(("dailies_error", str(error)))
+
+    def _dailies_reset(self, status: str) -> None:
+        self.dailies_running = False
+        self.dailies_button.configure(state="normal")
+        self.dailies_cancel_button.configure(state="disabled")
+        self.dailies_status_var.set(status)
+
+    def _dailies_finished(self, output: Path) -> None:
+        self.dailies_progress.configure(value=1000)
+        self._dailies_reset("Done")
+        size = human_bytes(output.stat().st_size) if output.exists() else "?"
+        if messagebox.askyesno("Dailies done", f"{output.name} ({size})\n\n{output.parent}\n\nPlay it now?"):
+            os.startfile(output)  # noqa: S606
+
     def _combo(self, parent, row: int, label: str, values: list[str]) -> tk.StringVar:
         ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", pady=2)
         var = tk.StringVar(value=values[0])
@@ -232,6 +431,7 @@ class App(ttk.Frame):
         help_menu = tk.Menu(menubar, tearoff=False)
         for label, url in (("Documentation", update.DOCS_URL),
                            ("Opening in Nuke", update.NUKE_URL),
+                           ("Dailies", update.DAILIES_URL),
                            ("Headless mode", update.HEADLESS_URL),
                            ("Troubleshooting", update.TROUBLESHOOTING_URL)):
             help_menu.add_command(label=label, command=lambda url=url: webbrowser.open(url))
@@ -243,6 +443,9 @@ class App(ttk.Frame):
 
     def _converting(self) -> bool:
         return str(self.cancel_button.cget("state")) == "normal"
+
+    def _busy(self) -> bool:
+        return self._converting() or self.dailies_running
 
     def check_updates(self, manual: bool) -> None:
         if manual:
@@ -270,7 +473,7 @@ class App(ttk.Frame):
             if manual:
                 messagebox.showinfo("Up to date", f"You have the latest version ({__version__}).")
             return
-        if self._converting():
+        if self._busy():
             if manual:
                 messagebox.showinfo("Update available",
                                     f"Version {release.version} is available. Finish or cancel the "
@@ -326,22 +529,35 @@ class App(ttk.Frame):
             return
         self.root.destroy()
 
-    def add_files(self) -> None:
+    @staticmethod
+    def _pick_files() -> list[Path]:
         picked = filedialog.askopenfilenames(
             title="Choose clips",
             filetypes=[("Video", "*.mp4 *.MP4 *.mov *.MOV *.mxf *.MXF"), ("All files", "*.*")],
         )
-        self._add([Path(p) for p in picked])
+        return [Path(p) for p in picked]
 
-    def add_folder(self) -> None:
+    @staticmethod
+    def _pick_folder() -> list[Path]:
         folder = filedialog.askdirectory(title="Choose a folder of clips")
         if not folder:
-            return
+            return []
         found = sorted(p for p in Path(folder).iterdir() if p.suffix.lower() in VIDEO_SUFFIXES)
         if not found:
             messagebox.showinfo("No clips", "No video files in that folder.")
-            return
-        self._add(found)
+        return found
+
+    def add_files(self) -> None:
+        self._add(self._pick_files())
+
+    def add_folder(self) -> None:
+        self._add(self._pick_folder())
+
+    def _probe(self, paths: list[Path]) -> None:
+        """Probe clips not yet in the cache, on a background thread."""
+        missing = [p for p in paths if p not in self.probed]
+        if missing:
+            threading.Thread(target=self._probe_worker, args=(missing,), daemon=True).start()
 
     def _add(self, paths: list[Path]) -> None:
         added = [p for p in paths if p not in self.paths]
@@ -419,6 +635,9 @@ class App(ttk.Frame):
         )
 
     def start(self) -> None:
+        if self.dailies_running:
+            messagebox.showinfo("Busy", "Wait for the dailies to finish first.")
+            return
         if not self.paths:
             messagebox.showwarning("No clips", "Add at least one clip.")
             return
@@ -471,6 +690,17 @@ class App(ttk.Frame):
                     self.probed[path] = clip
                 elif kind == "summary":
                     self.refresh_summary()
+                    self.refresh_dailies_summary()
+                elif kind == "dailies_progress":
+                    self.dailies_progress.configure(value=payload * 1000)
+                    self.dailies_status_var.set(f"{payload * 100:.0f}%")
+                elif kind == "dailies_done":
+                    self._dailies_finished(payload)
+                elif kind == "dailies_cancelled":
+                    self._dailies_reset("Stopped")
+                elif kind == "dailies_error":
+                    self._dailies_reset("Failed")
+                    messagebox.showerror("Dailies failed", payload)
                 elif kind == "progress":
                     fraction, index, count = payload
                     self.progress.configure(value=fraction * 1000)

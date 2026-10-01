@@ -58,6 +58,7 @@ nav:
       - Converting clips: converting.md
       - Opening in Nuke: nuke.md
       - Advanced settings: advanced.md
+      - Dailies: dailies.md
   - Pipeline:
       - Headless mode: headless.md
   - Help:

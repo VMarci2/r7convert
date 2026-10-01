@@ -11,6 +11,9 @@
 | Could not read … | The file isn't a readable video file. |
 | ProRes encoding failed | The `.mov` couldn't be written, often because the drive is full or the file is open in another program. The message includes ffmpeg's reason. |
 | Tick EXR or ProRes on the Advanced tab | Both formats are switched off. Tick at least one. |
+| Dailies failed: ffmpeg failed … | A clip couldn't be read or the file couldn't be written, often because the drive is full or the file is open in a player. The message includes ffmpeg's reason. |
+| This ffmpeg has no H.264 encoder | Rare; the bundled ffmpeg always has one. Choose a ProRes format on the Dailies tab instead. |
+| Wait for the … to finish first | Converting and making dailies can't run at the same time. |
 | Update check failed | GitHub couldn't be reached. Check the internet connection, or try again later. |
 
 ## Common problems

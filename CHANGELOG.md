@@ -10,6 +10,12 @@
 - Advanced tab split into Colour and Format groups. EXR settings only show when
   EXR is ticked, and ProRes quality only when ProRes is ticked.
 - Headless mode takes `--prores` and `--no-exr`.
+- New Dailies tab: joins clips one after another into a single H.264 or ProRes
+  .mov, with the clip name (bottom centre), frame / total (bottom right) and an
+  optional project name (bottom left) burnt in, Arial on a 50% black box. The
+  picture is the recording as-is (Canon Log stays flat, no LUT), tagged Rec.709.
+  Clips play in list order (Move up / Move down), keep their sound, and are
+  fitted to 1920x1080, 1280x720 or the first clip's size.
 - Updates: the app checks GitHub for a newer version when it starts, and on
   demand from Advanced → Check for updates. The installed version downloads the
   new installer, checks it, and updates and reopens by itself; the zip version

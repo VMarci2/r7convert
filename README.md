@@ -311,6 +311,7 @@ r7convert/
   convert.py   the pipeline, the option tables and the size estimate
   ui.py        tkinter front end (Convert tab + Advanced tab)
   update.py    update check and self-install from GitHub releases
+  dailies.py   Dailies tab: clips joined into one .mov with burn-ins
 ```
 
 Gamut matrices are derived at runtime from primaries and white points
