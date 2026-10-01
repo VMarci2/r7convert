@@ -24,10 +24,11 @@ from . import __version__
 
 REPO = "VMarci2/r7convert"
 RELEASES_PAGE = f"https://github.com/{REPO}/releases/latest"
-# GitHub Pages, served from docs/ on main: always the latest manuals.
+# The documentation site (MkDocs, built from docs/ by .github/workflows/docs.yml).
 DOCS_URL = "https://vmarci2.github.io/r7convert/"
-MANUAL_URL = DOCS_URL + "Canon_R7_EXR_Converter_Manual.pdf"
-HEADLESS_URL = DOCS_URL + "Canon_R7_EXR_Converter_Headless_Mode.pdf"
+NUKE_URL = DOCS_URL + "nuke/"
+HEADLESS_URL = DOCS_URL + "headless/"
+TROUBLESHOOTING_URL = DOCS_URL + "troubleshooting/"
 # R7_UPDATE_URL points the check at another manifest, for testing a release.
 MANIFEST_URL = os.environ.get("R7_UPDATE_URL") or f"{RELEASES_PAGE}/download/latest.json"
 DOWNLOAD_DIR = Path(tempfile.gettempdir()) / "r7convert-update"

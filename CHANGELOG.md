@@ -15,6 +15,10 @@
   new installer, checks it, and updates and reopens by itself; the zip version
   opens the download page. Copies older than 2.3.0 can't check, so install
   2.3.0 by hand once.
+- Documentation is now one website, https://vmarci2.github.io/r7convert/,
+  covering the app, Nuke setup, headless mode and troubleshooting. It replaces
+  the PDF manuals. The new Help menu opens it (and Check for updates), and the
+  Start menu's Documentation entry links to it.
 
 ## 2.2.0
 

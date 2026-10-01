@@ -1,4 +1,4 @@
-![Canon R7 EXR Converter](docs/banner.png)
+![Canon R7 EXR Converter](docs/assets/banner.png)
 
 # Canon R7 EXR Converter - FVFX
 
@@ -9,8 +9,8 @@ optionally ProRes) that drop straight into Nuke.
 (the `Setup.exe` is recommended: it updates itself) ·
 **[Documentation](https://vmarci2.github.io/r7convert/)**
 
-The zip contains the exe, bundled ffmpeg and exiftool, and `Manual.pdf`; nothing
-needs installing. Both builds check for updates when they start.
+The zip contains the exe and bundled ffmpeg and exiftool; nothing needs
+installing. Both builds check for updates when they start.
 
 **To develop it:**
 
@@ -38,9 +38,9 @@ the same folder build, so nothing unpacks to a temp folder at launch.
 **Versioning.** The one version number lives in `r7convert/__init__.py`
 (`__version__`). The build stamps it into the folder and zip names, the exe name
 (`Canon R7 EXR Converter vX.Y.Z.exe`), the exe's file properties (File/Product
-version), the window title, the manual and a `VERSION.txt` in the app folder
+version), the window title and a `VERSION.txt` in the app folder
 (which also carries `CHANGELOG.md`). To release: bump `__version__`, add a
-`CHANGELOG.md` entry, rebuild the manual, run the build. The build refuses to
+`CHANGELOG.md` entry, update the docs if anything user-facing changed, run the build. The build refuses to
 overwrite an existing release of the same version unless given `--force`.
 Run it from an environment with `requirements.txt` plus PyInstaller **installed
 from source** so the bootloader is compiled locally:
@@ -65,6 +65,23 @@ ffmpeg is the BtbN **LGPL shared** 8.1 build (160 MB for ffmpeg + ffprobe,
 against 420 MB for the static full build); its decode output is bit-identical to
 the 8.0.1 full build for this footage. The build copies its licence alongside it.
 The release zip and folder scan clean with Windows Defender.
+
+## Documentation
+
+The user docs are a MkDocs Material site: Markdown pages in `docs/`, navigation
+in `mkdocs.yml`. `.github/workflows/docs.yml` builds it with `--strict` and
+publishes it to GitHub Pages (https://vmarci2.github.io/r7convert/) on every
+push to `main` that touches the docs. The app's Help menu links to its pages
+(URLs in `r7convert/update.py`), so keep those page names stable.
+
+To preview locally:
+
+```
+pip install -r requirements-docs.txt
+mkdocs serve              (http://127.0.0.1:8000, reloads on save)
+```
+
+Screenshots live in `docs/assets/`.
 
 ## Publishing an update
 

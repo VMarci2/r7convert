@@ -230,13 +230,11 @@ class App(ttk.Frame):
     def _build_menu(self) -> None:
         menubar = tk.Menu(self.root)
         help_menu = tk.Menu(menubar, tearoff=False)
-        help_menu.add_command(label="Manual (online)", command=lambda: webbrowser.open(update.MANUAL_URL))
-        help_menu.add_command(label="Headless mode (online)",
-                              command=lambda: webbrowser.open(update.HEADLESS_URL))
-        offline = _app_dir() / "Manual.pdf"
-        if offline.is_file():
-            help_menu.add_command(label="Manual (offline copy)", command=lambda: os.startfile(offline))
-        help_menu.add_command(label="Documentation website", command=lambda: webbrowser.open(update.DOCS_URL))
+        for label, url in (("Documentation", update.DOCS_URL),
+                           ("Opening in Nuke", update.NUKE_URL),
+                           ("Headless mode", update.HEADLESS_URL),
+                           ("Troubleshooting", update.TROUBLESHOOTING_URL)):
+            help_menu.add_command(label=label, command=lambda url=url: webbrowser.open(url))
         help_menu.add_separator()
         help_menu.add_command(label="Check for updates…", command=lambda: self.check_updates(manual=True))
         help_menu.add_command(label="Release notes", command=lambda: webbrowser.open(update.RELEASES_PAGE))
@@ -532,13 +530,6 @@ class App(ttk.Frame):
         self.log_text.insert("end", message.rstrip() + "\n")
         self.log_text.see("end")
         self.log_text.configure(state="disabled")
-
-
-def _app_dir() -> Path:
-    """Folder of the exe in a build, the repo root when run from source."""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
-    return Path(__file__).resolve().parent.parent
 
 
 def _size_of(outputs: list[Path]) -> int:

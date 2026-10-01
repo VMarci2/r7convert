@@ -1,6 +1,6 @@
 """Build the shareable app folder and zip.
 
-    python packaging/build_release.py --ffmpeg-bin DIR --exiftool-dir DIR [--manual PDF] [--force]
+    python packaging/build_release.py --ffmpeg-bin DIR --exiftool-dir DIR [--force]
     python packaging/build_release.py --installer-only
 
 The version comes from r7convert/__init__.py (__version__). It is stamped into the
@@ -25,6 +25,9 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from r7convert.update import DOCS_URL  # noqa: E402
+
 PRODUCT = "Canon R7 EXR Converter"
 FFMPEG_FILES = ["ffmpeg.exe", "ffprobe.exe"]
 ISCC_PATHS = [
@@ -60,7 +63,6 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ffmpeg-bin", type=Path)
     parser.add_argument("--exiftool-dir", type=Path)
-    parser.add_argument("--manual", type=Path, default=ROOT / "docs" / "Canon_R7_EXR_Converter_Manual.pdf")
     parser.add_argument("--force", action="store_true", help="overwrite an existing release of this version")
     parser.add_argument("--installer-only", action="store_true",
                         help="only build the installer from the existing dist folder of this version")
@@ -121,8 +123,8 @@ def main() -> int:
     if launcher and launcher.name != "exiftool.exe":
         launcher.rename(exif_out / "exiftool.exe")
 
-    if args.manual.is_file():
-        shutil.copy2(args.manual, app / "Manual.pdf")
+    # The docs are online only (MkDocs site); ship a shortcut instead of a PDF.
+    (app / "Documentation.url").write_text(f"[InternetShortcut]\nURL={DOCS_URL}\n", encoding="utf-8")
     changelog = ROOT / "CHANGELOG.md"
     (app / "VERSION.txt").write_text(
         f"{PRODUCT} - FVFX\nVersion {version}\n\n"

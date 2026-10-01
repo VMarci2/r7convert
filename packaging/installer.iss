@@ -43,7 +43,7 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs 
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"
-Name: "{group}\{#AppName} Manual"; Filename: "{app}\Manual.pdf"
+Name: "{group}\{#AppName} Documentation"; Filename: "{app}\Documentation.url"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: desktopicon
 
 [Run]
