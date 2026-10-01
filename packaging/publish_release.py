@@ -59,7 +59,7 @@ def main() -> int:
 
     version = read_version()
     tag = f"v{version}"
-    release = ROOT / "release"
+    release = ROOT / "release" / tag
     setup = release / f"{PRODUCT} v{version} Setup.exe"
     archive = release / f"{PRODUCT} v{version}.zip"
     for path in (setup, archive):
@@ -75,7 +75,7 @@ def main() -> int:
     notes = changelog_section(version)
 
     # GitHub turns spaces in asset names into dots; upload under predictable names instead.
-    upload = release / "upload" / tag
+    upload = ROOT / "build" / "upload" / tag
     shutil.rmtree(upload, ignore_errors=True)
     upload.mkdir(parents=True)
     setup_name = f"Canon-R7-EXR-Converter-{tag}-Setup.exe"

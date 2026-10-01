@@ -28,9 +28,9 @@ python packaging/build_release.py --ffmpeg-bin <dir> --exiftool-dir <dir>
 ```
 
 Writes `dist/Canon R7 EXR Converter vX.Y.Z/`,
-`release/Canon R7 EXR Converter vX.Y.Z.zip` and, if Inno Setup 6 is installed
+`release/vX.Y.Z/Canon R7 EXR Converter vX.Y.Z.zip` and, if Inno Setup 6 is installed
 (`winget install JRSoftware.InnoSetup`), the single-file installer
-`release/Canon R7 EXR Converter vX.Y.Z Setup.exe` from `packaging/installer.iss`.
+`release/vX.Y.Z/Canon R7 EXR Converter vX.Y.Z Setup.exe` from `packaging/installer.iss`.
 It installs per user into `%LOCALAPPDATA%\Programs` (no admin rights), wrapping
 the same folder build, so nothing unpacks to a temp folder at launch.
 `--installer-only` rebuilds just the installer from an existing `dist` folder.

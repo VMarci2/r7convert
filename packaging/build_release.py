@@ -71,7 +71,7 @@ def main() -> int:
     version = read_version()
     major, minor, patch = version.split(".")
     name = f"{PRODUCT} v{version}"
-    release = ROOT / "release"
+    release = ROOT / "release" / f"v{version}"
     dist = ROOT / "dist"
     if args.installer_only:
         if not (dist / name).is_dir():
@@ -132,7 +132,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    release.mkdir(exist_ok=True)
+    release.mkdir(parents=True, exist_ok=True)
     if archive.exists():
         archive.unlink()
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
