@@ -23,6 +23,7 @@ from .convert import (
     RESOLUTIONS,
     Cancelled,
     Converter,
+    OutOfMemory,
     Progress,
     Settings,
     estimate_bytes,
@@ -697,6 +698,9 @@ class App(ttk.Frame):
             self.messages.put(("done", (len(clips), settings, outputs)))
         except Cancelled:
             self.messages.put(("cancelled", None))
+        except OutOfMemory as error:
+            self.messages.put(("log", f"Out of memory.\n{error.detail}"))
+            self.messages.put(("error", str(error)))
         except Exception as error:
             self.messages.put(("log", traceback.format_exc()))
             self.messages.put(("error", str(error)))

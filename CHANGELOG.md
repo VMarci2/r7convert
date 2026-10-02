@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.1
+
+- When the computer runs out of memory (usually because Nuke, SynthEyes or a
+  browser is using most of it), the app now says so in plain words and says
+  what to close, instead of showing a Python error.
+
 ## 2.4.0
 
 - Dailies: choose what is burnt in. Clip name, frame number and project name

@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import queue
 import subprocess
+import sys
 import threading
 import traceback
 from dataclasses import dataclass
@@ -73,6 +74,19 @@ DEFAULT_WORKERS = 2
 
 class Cancelled(Exception):
     pass
+
+
+class OutOfMemory(RuntimeError):
+    """Windows refused memory: almost always other programs, not this one."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(
+            "Your computer ran out of memory.\n\n"
+            "Close programs that use a lot of it (Nuke, SynthEyes, other 3D or video apps, "
+            "browsers with many tabs) and convert again.\n\n"
+            "Frames already written stay on disk and are replaced when you convert again."
+        )
+        self.detail = detail
 
 
 @dataclass
@@ -239,7 +253,11 @@ class Converter:
         completed = 0
         produced = 0
 
+        out_of_memory = False
+
         def fail() -> None:
+            nonlocal out_of_memory
+            out_of_memory |= isinstance(sys.exc_info()[1], MemoryError)
             errors.append(traceback.format_exc())
             on_error()
 
@@ -304,6 +322,8 @@ class Converter:
         proc.stdout.close()
         proc.stderr.close()
 
+        if out_of_memory:
+            raise OutOfMemory(errors[0])
         if errors:
             raise RuntimeError(errors[0])
         self._check_cancelled()
