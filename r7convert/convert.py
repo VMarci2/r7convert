@@ -15,7 +15,7 @@ import numpy as np
 import OpenImageIO as oiio
 
 from . import colour
-from .media import Clip, Tools, pack_timecode, probe, _NO_WINDOW
+from .media import Clip, Tools, drain, pack_timecode, probe, _NO_WINDOW
 
 # label -> target width, None keeps the source size
 RESOLUTIONS: dict[str, int | None] = {
@@ -227,6 +227,7 @@ class Converter:
              "-vf", DECODE_FILTER, "-f", "rawvideo", "-pix_fmt", "rgb48le", "-"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, **_NO_WINDOW,
         )
+        decoder_stderr = drain(proc.stderr)
 
         free: queue.Queue = queue.Queue()
         for _ in range(workers + 2):
@@ -298,10 +299,10 @@ class Converter:
 
         if proc.poll() is None:
             proc.kill()
-        stderr = proc.stderr.read().decode("utf-8", "replace").strip()
+        proc.wait()
+        stderr = decoder_stderr()
         proc.stdout.close()
         proc.stderr.close()
-        proc.wait()
 
         if errors:
             raise RuntimeError(errors[0])
@@ -489,6 +490,7 @@ class _ProResWriter:
             command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE, **_NO_WINDOW,
         )
+        self._stderr = drain(self.proc.stderr)
         self.thread = threading.Thread(target=self._feed, daemon=True)
         self.thread.start()
 
@@ -542,12 +544,12 @@ class _ProResWriter:
         with self.cond:
             self.done = True
             self.cond.notify_all()
-        self.thread.join()
         if self.failed and self.proc.poll() is None:
-            self.proc.kill()
-        self.stderr = stderr = self.proc.stderr.read().decode("utf-8", "replace").strip()
-        self.proc.stderr.close()
+            self.proc.kill()  # before the join: it unblocks a write stuck on a dead encoder
+        self.thread.join()
         code = self.proc.wait()
+        self.stderr = stderr = self._stderr()
+        self.proc.stderr.close()
         if self.cancelled():
             return stderr
         if self.failed or code != 0:

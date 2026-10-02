@@ -7,6 +7,9 @@
 - 720p removed: the Convert size options are Full and 1920 wide, and the
   Dailies sizes are 1920 x 1080 and Same as first clip.
 - The window opens taller, so every Dailies control fits.
+- Fixed: a conversion could occasionally stop partway and never finish. ffmpeg's
+  messages are now read continuously, so it can't stall waiting on them, and a
+  failed ProRes encode can no longer leave the app waiting forever.
 
 ## 2.3.0
 

@@ -6,14 +6,41 @@ import json
 import shutil
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
+from typing import Callable
 
 if sys.platform == "win32":
     _NO_WINDOW = {"creationflags": subprocess.CREATE_NO_WINDOW}
 else:
     _NO_WINDOW = {}
+
+
+def drain(stream) -> Callable[[], str]:
+    """Read a child's pipe on a thread for as long as it runs; returns a function that
+    waits for the end and gives the text.
+
+    A Windows pipe holds only a few KB: a child that writes more than that to a
+    pipe nobody is reading blocks forever, and the whole conversion hangs with it.
+    Every ffmpeg stderr=PIPE must go through this.
+    """
+    chunks: list = []
+
+    def read() -> None:
+        while chunk := stream.read(4096):
+            chunks.append(chunk)
+
+    thread = threading.Thread(target=read, daemon=True)
+    thread.start()
+
+    def result() -> str:
+        thread.join()
+        text = "".join(c if isinstance(c, str) else c.decode("utf-8", "replace") for c in chunks)
+        return text.strip()
+
+    return result
 
 VIDEO_SUFFIXES = {".mp4", ".mov", ".mxf", ".m4v"}
 

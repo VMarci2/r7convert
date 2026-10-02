@@ -20,7 +20,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Callable
 
-from .media import Clip, Tools, _NO_WINDOW
+from .media import Clip, Tools, drain, _NO_WINDOW
 
 H264 = "H.264 (small, plays anywhere)"
 
@@ -242,6 +242,7 @@ class DailiesMaker:
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
             errors="replace", **_NO_WINDOW,
         )
+        stderr = drain(proc.stderr)
         for line in proc.stdout:
             if self.cancelled():
                 proc.kill()
@@ -252,6 +253,6 @@ class DailiesMaker:
                     on_frame(int(line[6:].strip()))
                 except ValueError:
                     pass
-        stderr = proc.stderr.read().strip()
         if proc.wait() != 0:
-            raise RuntimeError(f"ffmpeg failed: {stderr[:400]}")
+            raise RuntimeError(f"ffmpeg failed: {stderr()[:400]}")
+        stderr()
